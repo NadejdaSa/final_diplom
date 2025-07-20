@@ -12,6 +12,7 @@ router.register(r'parameters', ParameterViewSet)
 router.register(r'product_parameters', ProductParameterViewSet)
 router.register(r'order_items', OrderItemViewSet)
 router.register(r'orders', OrderViewSet)
+router.register(r'contacts', ContactViewSet)
 
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),

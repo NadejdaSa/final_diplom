@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from backend.models import Order, OrderItem, User, Product, ProductInfo, Shop, Category, Parameter, ProductParameter
+from backend.models import Contact, Order, OrderItem, User, Product, ProductInfo, Shop, Category, Parameter, ProductParameter
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -80,3 +80,10 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ['id', 'user', 'dt', 'status', 'items']
+
+
+class ContactSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Contact
+        fields = ['id', 'type', 'value']

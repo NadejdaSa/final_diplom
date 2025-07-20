@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework import generics, viewsets
-from .serializers import CategorySerializer, OrderItemSerializer, OrderSerializer, ParameterSerializer, ProductInfoSerializer, ProductParameterSerializer, ProductSerializer, ShopSerializer, UserSerializer
-from .models import Category, Order, OrderItem, Parameter, Product, ProductInfo, ProductParameter, Shop, User
+from .serializers import CategorySerializer, ContactSerializer, OrderItemSerializer, OrderSerializer, ParameterSerializer, ProductInfoSerializer, ProductParameterSerializer, ProductSerializer, ShopSerializer, UserSerializer
+from .models import Category, Contact, Order, OrderItem, Parameter, Product, ProductInfo, ProductParameter, Shop, User
 
 
 # Create your views here.
@@ -53,3 +53,8 @@ class OrderItemViewSet(viewsets.ModelViewSet):
 class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
+
+
+class ContactViewSet(viewsets.ModelViewSet):
+    queryset = Contact.objects.all()
+    serializer_class = ContactSerializer

@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, PermissionsMixin
-
+from django_rest_passwordreset.tokens import get_token_generator
 
 # Create your models here.
 class UserManager(BaseUserManager):
@@ -151,3 +151,23 @@ class Contact(models.Model):
 
     def __str__(self):
         return f"{self.type}:{self.value}"
+
+class ConfirmEmailToken(models.Model):
+    objects = models.manager.Manager()
+
+    @staticmethod
+    def generate_key():
+        return get_token_generator().generate_token()
+
+    user = models.ForeignKey(
+        User, related_name='confirm_email_tokens', on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    key = models.CharField(_("Keyy"), max_length=64, db_index=True, unique=True)
+
+    def save(self, *args, **kwargs):
+        if not self.key:
+            self.key = self.generate_key()
+        return super(ConfirmEmailToken, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return "Password reset token for user {user}".format(user=self.user)
