@@ -1,53 +1,51 @@
 from django.forms import ValidationError
-from django.http import JsonResponse
-from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import generics, viewsets, status
+from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
-from .serializers import CategorySerializer, ContactSerializer, OrderItemSerializer, OrderSerializer, ParameterSerializer, ProductInfoSerializer, ProductParameterSerializer, ProductSerializer, ShopSerializer, UserSerializer
-from .models import Category, Contact, Order, OrderItem, Parameter, Product, ProductInfo, ProductParameter, Shop, User
+from rest_framework.authtoken.models import Token
+from .serializers import CategorySerializer, ContactSerializer, OrderSerializer, OrderItemSerializer, ParameterSerializer, ProductSerializer, ProductInfoSerializer, ProductParameterSerializer, ShopSerializer, UserSerializer
+from .models import Category, ConfirmEmailToken, Contact, Order, OrderItem, Parameter, Product, ProductInfo, ProductParameter, Shop, User
 from django.core.validators import URLValidator
 from requests import get
-from django.contrib.auth import authenticate, login
+from backend.signals import new_user_registered
+from django.contrib.auth import authenticate
 import yaml
-# Create your views here.
 
 
+# Реализация импорта товаров
 class PartnerUpdate(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return JsonResponse({'Status': False, 'Error': 'Необходима авторизация'}, status=403)
         if request.user.type != 'shop':
-            return JsonResponse({'Status': False, 'Error': 'Только для магазинов'}, status=403)
+            return Response({'status': False, 'error': 'Только для магазинов'}, status=status.HTTP_403_FORBIDDEN)
 
         url = request.data.get('url')
         if not url:
-            return JsonResponse({'Status': False, 'Error': 'Не указан url'}, status=400)
+            return Response({'status': False, 'error': 'Не указан url'}, status=status.HTTP_400_BAD_REQUEST)
 
         validate_url = URLValidator()
         try:
             validate_url(url)
         except ValidationError as e:
-            return JsonResponse({'Status': False, 'Error': f'Некорректный URL: {str(e)}'}, status=400)
+            return Response({'status': False, 'error': f'Некорректный URL: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             response = get(url)
             response.raise_for_status()
             data = yaml.safe_load(response.content)
         except Exception as e:
-            return JsonResponse({'Status': False, 'Error': f'Ошибка загрузки yaml: {str(e)}'}, status=400)
+            return Response({'status': False, 'error': f'Ошибка загрузки yaml: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
 
         shop_name = data.get('shop')
         if not shop_name:
-            return JsonResponse({'Status': False,
-                                 'Error': 'Не указан магазин'}, status=400)
+            return Response({'status': False,
+                                 'error': 'Не указан магазин'}, status=status.HTTP_400_BAD_REQUEST)
         shop, _ = Shop.objects.get_or_create(name=data['shop'],
                                              user_id=request.user.id)
 
-        for category in data['categories']:
+        for category in data.get('categories', []):
             category_obj, _ = Category.objects.get_or_create(id=category['id'],
                                                              name=category['name'])
             category_obj.shops.add(shop)
@@ -68,40 +66,71 @@ class PartnerUpdate(APIView):
             )
             for name, value in item.get('parameters', {}).items():
                 parameter, _ = Parameter.objects.get_or_create(name=name)
-                ProductParameter.objects.create(product_info_id=product_info.id,
-                                                parameter_id=parameter.id,
-                                                value=value)
+                ProductParameter.objects.create(
+                    product_info_id=product_info.id,
+                    parameter_id=parameter.id,
+                    value=value)
 
-        return JsonResponse({'Status': True})
-
-
-# Вход
-class LoginView(APIView):
-    def post(self, request):
-        username = request.data.get('username')
-        password = request.data.get('password')
-
-        user = authenticate(username=username, password=password)
-        if user is not None:
-            login(request, user)
-            return Response({'status': True}, status=status.HTTP_200_OK)
-        return Response({'status': False, 'Error': 'Неверные данные'},
-                        status=status.HTTP_401_UNAUTHORIZED)
+        return Response({'status': True})
 
 
 # Регистрация
 class RegisterView(APIView):
     def post(self, request):
         data = request.data
+        username = data.get('username')
+        email = data.get('email')
+        password = data.get('password')
+        if not username or not email or not password:
+            return Response({'status': False,
+                             'error': 'Email, имя пользователя и пароль обязательны'}, status=status.HTTP_400_BAD_REQUEST)
         if User.objects.filter(username=data.get('username')).exists():
-            return Response({'status': False, 'Error': 'Пользователь с таким именем уже существует'}, status= 400)
+            return Response({'status': False, 'Error': 'Пользователь с таким именем уже существует'}, status=status.HTTP_400_BAD_REQUEST)
         user = User.objects.create_user(
             email=data.get('email'),
             username=data.get('username'),
             password=data.get('password'),
+            is_active=False
         )
-        user.save()
-        return Response({'status': True})
+        new_user_registered.send(sender=self.__class__, user=user, request=request)
+        return Response({'status': True, 'message': 'Письмо с подтверждением отправлено на почту'})
+
+
+# Вход
+class LoginView(APIView):
+    def post(self, request):
+        email = request.data.get('email')
+        password = request.data.get('password')
+        if not email or not password:
+            return Response({'status': False, 'error': 'Email и пароль обязательны'}, status=status.HTTP_400_BAD_REQUEST)
+        user = authenticate(request, username=email, password=password)
+        if user is not None:
+            if user.is_active:
+                token, created = Token.objects.get_or_create(user=user)
+                return Response({'status': True, 'token': token.key}, status=status.HTTP_200_OK)
+            else:
+                return Response({'status': False, 'error': 'Аккаунт не подтверждён'}, status=status.HTTP_403_FORBIDDEN)
+
+        else:
+            return Response({'status': False, 'error': 'Неверные данные'},
+                        status=status.HTTP_401_UNAUTHORIZED)
+
+
+class ConfirmEmailView(APIView):
+    def post(self, request):
+        if {'email', 'token'}.issubset(request.data):
+            token = ConfirmEmailToken.objects.filter(
+                user__email=request.data['email'],
+                key=request.data['token']).first()
+            if token:
+                token.user.is_active = True
+                token.user.save()
+                token.delete()
+                return Response({'status': True})
+            else:
+                return Response({'status': False, 'errors': 'Неправильно указан токен или email'})
+
+        return Response({'status': False, 'errors': 'Не указаны все необходимые аргументы'})
 
 
 # Список товаров
@@ -118,20 +147,33 @@ class BasketView(APIView):
 
     def get(self, request):
         basket = Order.objects.filter(user=request.user,
-                                      state='basket').prefetch_related('ordered_items')
+                                      status='basket').prefetch_related('ordered_items')
         return Response(OrderSerializer(basket, many=True).data)
 
     def post(self, request):
         product_info_id = request.data.get('product_info_id')
         quantity = request.data.get('quantity')
+        if not product_info_id or not quantity:
+            return Response({'status': False, 'error': 'product_info_id и quantity обязательны'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            quantity = int(quantity)
+            if quantity <= 0:
+                raise ValueError
+        except ValueError:
+            return Response({'status': False, 'error': 'Количество должно быть положительным числом'}, status=status.HTTP_400_BAD_REQUEST)
+
         basket, _ = Order.objects.get_or_create(user=request.user,
-                                                state='basket')
+                                                status='basket')
         OrderItem.objects.create(order=basket, product_info_id=product_info_id, quantity=quantity)
         return Response({'status': True})
 
     def delete(self, request):
         item_id = request.data.get('item_id')
-        OrderItem.objects.filter(id=item_id, order__user=request.user, order__state='basket').delete()
+        if not item_id:
+            return Response({'status': False, 'error': 'item_id обязателен'}, status=status.HTTP_400_BAD_REQUEST)
+
+        OrderItem.objects.filter(id=item_id, order__user=request.user, order__status='basket').delete()
         return Response({'status': True})
 
 
@@ -148,10 +190,12 @@ class ContactView(APIView):
         if serializer.is_valid():
             serializer.save(user=request.user)
             return Response({'status': True})
-        return Response({'Status': False, 'Error': serializer.errors})
+        return Response({'status': False, 'error': serializer.errors})
 
     def delete(self, request):
         contact_id = request.data.get('contact_id')
+        if not contact_id:
+            return Response({'status': False, 'error': 'contact_id обязателен'}, status=status.HTTP_400_BAD_REQUEST)
         Contact.objects.filter(id=contact_id, user=request.user).delete()
         return Response({'status': True})
 
@@ -161,9 +205,9 @@ class ConfirmOrderView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        order = Order.objects.filter(user=request.user, state='basket').first()
+        order = Order.objects.filter(user=request.user, status='basket').first()
         if not order:
-            return Response({'status': False, 'Error': 'Корзина пуста'})
+            return Response({'status': False, 'error': 'Корзина пуста'})
 
         contact_id = request.data.get('contact')
         contact = Contact.objects.filter(id=contact_id, user=request.user).first()
@@ -171,7 +215,7 @@ class ConfirmOrderView(APIView):
             return Response({'status': False, 'Error': 'Контакт не найден'})
 
         order.contact = contact
-        order.state = 'new'
+        order.status = 'new'
         order.save()
         return Response({'status': True})
 
@@ -181,7 +225,7 @@ class OrderListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        orders = Order.objects.filter(user=request.user).exclude(state='basket')
+        orders = Order.objects.filter(user=request.user).exclude(status='basket')
         return Response(OrderSerializer(orders, many=True).data)
 
 

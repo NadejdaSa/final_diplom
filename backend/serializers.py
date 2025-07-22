@@ -36,6 +36,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class ProductSerializer(serializers.ModelSerializer):
+    category = CategorySerializer(read_only=True)
 
     class Meta:
         model = Product
@@ -70,7 +71,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = OrderItem
-        fields = ['id', 'product', 'shop', 'quantity']
+        fields = ['id', 'product_info', 'quantity']
 
 
 class OrderSerializer(serializers.ModelSerializer):

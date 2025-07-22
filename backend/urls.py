@@ -15,10 +15,13 @@ router.register(r'orders', OrderViewSet)
 
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
+    path('confirm-email/', ConfirmEmailView.as_view(), name='confirm-email'),
     path('', include(router.urls)),
     path('partner/update/', PartnerUpdate.as_view(), name='partner_update'),
     path('login/', LoginView.as_view(), name='login'),
-    path('products/', ProductView.as_view(), name='products'),
+    path('product-list/', ProductView.as_view(), name='products'),
     path('basket/', BasketView.as_view(), name='basket'),
     path('contacts/', ContactView.as_view(), name='contacts'),
+    path('orders/my/', OrderListView.as_view(), name='my-orders'),
+    path('order/confirm/', ConfirmOrderView.as_view(), name='order-confirm'),
 ]

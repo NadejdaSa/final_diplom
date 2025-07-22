@@ -76,10 +76,11 @@ class ProductInfo(models.Model):
                                 on_delete=models.CASCADE)
     shop = models.ForeignKey(Shop, related_name="product_infos",
                              on_delete=models.CASCADE)
-    model = models.CharField(max_length=100)
+    model = models.CharField(max_length=100, blank=True, null=True)
     quantity = models.PositiveIntegerField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
     price_rrc = models.DecimalField(max_digits=10, decimal_places=2)
+    external_id = models.PositiveIntegerField()
 
     def __str__(self):
         return f"{self.product.name} в {self.shop.name} — {self.price} руб."
@@ -162,7 +163,7 @@ class ConfirmEmailToken(models.Model):
     user = models.ForeignKey(
         User, related_name='confirm_email_tokens', on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
-    key = models.CharField(_("Keyy"), max_length=64, db_index=True, unique=True)
+    key = models.CharField(_("Key"), max_length=64, db_index=True, unique=True)
 
     def save(self, *args, **kwargs):
         if not self.key:
@@ -170,4 +171,5 @@ class ConfirmEmailToken(models.Model):
         return super(ConfirmEmailToken, self).save(*args, **kwargs)
 
     def __str__(self):
-        return "Password reset token for user {user}".format(user=self.user)
+        return f"Email confirmation token for {self.user.email}"
+
