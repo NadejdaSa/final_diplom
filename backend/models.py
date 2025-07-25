@@ -6,20 +6,20 @@ from django_rest_passwordreset.tokens import get_token_generator
 class UserManager(BaseUserManager):
     use_in_migrations = True
 
-    def _create_user(self, email, password, **extra_fields):
+    def _create_user(self, email, password, type, **extra_fields):
         if not email:
             raise ValueError('Email обязателен для создания пользователя.')
         email = self.normalize_email(email)
         extra_fields.setdefault('username', email.split('@')[0])
-        user = self.model(email=email, **extra_fields)
+        user = self.model(email=email, type=type, **extra_fields)
         user.set_password(password)
         user.save()
         return user
 
-    def create_user(self, email, password=None, **extra_fields):
+    def create_user(self, email, password=None, type='buyer',  **extra_fields):
         extra_fields.setdefault('is_staff', False)
         extra_fields.setdefault('is_superuser', False)
-        return self._create_user(email, password, **extra_fields)
+        return self._create_user(email, password, type, **extra_fields)
 
     def create_superuser(self, email, password, **extra_fields):
         extra_fields.setdefault('is_staff', True)
@@ -28,15 +28,19 @@ class UserManager(BaseUserManager):
             raise ValueError('Суперпользователь должен иметь is_staff=True.')
         if extra_fields.get('is_superuser') is not True:
             raise ValueError('Суперпользователь должен иметь is_superuser=True')
-        return self._create_user(email, password, **extra_fields)
+        return self._create_user(email, password, type='shop', **extra_fields)
 
 
 class User(AbstractBaseUser, PermissionsMixin):
+    USER_TYPES = (
+        ('shop', 'Магазин'),
+        ('buyer', 'Покупатель'),
+    )
     email = models.EmailField(unique=True)
     username = models.CharField(max_length=150, blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
-
+    type = models.CharField(max_length=10, choices=USER_TYPES, default='buyer')
     objects = UserManager()
 
     USERNAME_FIELD = 'email'
@@ -47,15 +51,17 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 
 class Shop(models.Model):
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=200)
     url = models.URLField(null=True)
-
+    user = models.OneToOneField(User,
+                                blank=True, null=True,
+                                on_delete=models.CASCADE)
     def __str__(self):
         return self.name
 
 
 class Category(models.Model):
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=200)
     shops = models.ManyToManyField(Shop, related_name='categories')
 
     def __str__(self):
@@ -63,7 +69,7 @@ class Category(models.Model):
 
 
 class Product(models.Model):
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=200)
     category = models.ForeignKey(Category, related_name='products',
                                  on_delete=models.CASCADE)
 
@@ -153,6 +159,7 @@ class Contact(models.Model):
     def __str__(self):
         return f"{self.type}:{self.value}"
 
+
 class ConfirmEmailToken(models.Model):
     objects = models.manager.Manager()
 
@@ -163,7 +170,7 @@ class ConfirmEmailToken(models.Model):
     user = models.ForeignKey(
         User, related_name='confirm_email_tokens', on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
-    key = models.CharField(_("Key"), max_length=64, db_index=True, unique=True)
+    key = models.CharField(("Key"), max_length=64, db_index=True, unique=True)
 
     def save(self, *args, **kwargs):
         if not self.key:

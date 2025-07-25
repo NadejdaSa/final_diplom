@@ -32,7 +32,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Category
-        fields = ['id', 'name']
+        fields = ['id', 'name', 'shops']
 
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -67,11 +67,9 @@ class ProductParameterSerializer(serializers.ModelSerializer):
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
-    product = ProductInfoSerializer(read_only=True)
-
     class Meta:
         model = OrderItem
-        fields = ['id', 'product_info', 'quantity']
+        fields = ['id', 'product', 'quantity', 'shop']
 
 
 class OrderSerializer(serializers.ModelSerializer):

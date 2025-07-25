@@ -81,6 +81,8 @@ class RegisterView(APIView):
         username = data.get('username')
         email = data.get('email')
         password = data.get('password')
+        user_type = data.get('type')
+
         if not username or not email or not password:
             return Response({'status': False,
                              'error': 'Email, имя пользователя и пароль обязательны'}, status=status.HTTP_400_BAD_REQUEST)
@@ -90,6 +92,7 @@ class RegisterView(APIView):
             email=data.get('email'),
             username=data.get('username'),
             password=data.get('password'),
+            type=user_type,
             is_active=False
         )
         new_user_registered.send(sender=self.__class__, user=user, request=request)
@@ -147,7 +150,7 @@ class BasketView(APIView):
 
     def get(self, request):
         basket = Order.objects.filter(user=request.user,
-                                      status='basket').prefetch_related('ordered_items')
+                                      status='basket').prefetch_related('items')
         return Response(OrderSerializer(basket, many=True).data)
 
     def post(self, request):
@@ -165,7 +168,12 @@ class BasketView(APIView):
 
         basket, _ = Order.objects.get_or_create(user=request.user,
                                                 status='basket')
-        OrderItem.objects.create(order=basket, product_info_id=product_info_id, quantity=quantity)
+        try:
+            product_info = ProductInfo.objects.get(id=product_info_id)
+        except ProductInfo.DoesNotExist:
+            return Response({'status': False, 'error': 'Продукт не найден'}, status=status.HTTP_400_BAD_REQUEST)
+
+        OrderItem.objects.create(order=basket, product=product_info, shop=product_info.shop, quantity=quantity)
         return Response({'status': True})
 
     def delete(self, request):

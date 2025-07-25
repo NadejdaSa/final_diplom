@@ -6,4 +6,5 @@ class BackendConfig(AppConfig):
     name = 'backend'
 
     def ready(self):
+        print('[DEBUG] Вызван ready() в AppConfig')
         import backend.signals
