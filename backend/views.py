@@ -8,7 +8,7 @@ from .serializers import CategorySerializer, ContactSerializer, OrderSerializer,
 from .models import Category, ConfirmEmailToken, Contact, Order, OrderItem, Parameter, Product, ProductInfo, ProductParameter, Shop, User
 from django.core.validators import URLValidator
 from requests import get
-from backend.signals import new_user_registered
+from backend.signals import new_user_registered, email_confirmed, new_order_status
 from django.contrib.auth import authenticate
 import yaml
 
@@ -129,6 +129,7 @@ class ConfirmEmailView(APIView):
                 token.user.is_active = True
                 token.user.save()
                 token.delete()
+                email_confirmed.send(sender=self.__class__, user=token.user)
                 return Response({'status': True})
             else:
                 return Response({'status': False, 'errors': 'Неправильно указан токен или email'})
@@ -221,10 +222,21 @@ class ConfirmOrderView(APIView):
         contact = Contact.objects.filter(id=contact_id, user=request.user).first()
         if not contact:
             return Response({'status': False, 'Error': 'Контакт не найден'})
-
+        contacts = request.user.contacts.all()
+        has_address = contacts.filter(type='address').exists()
+        has_phone = contacts.filter(type='phone').exists()
+        if not has_address or not has_phone:
+            return Response({
+                'status': False,
+                'error': 'Нужно указать адрес и телефон'
+            }, status=status.HTTP_400_BAD_REQUEST)
         order.contact = contact
         order.status = 'new'
         order.save()
+        new_order_status.send(
+            sender=self.__class__,
+            order=order,
+        )
         return Response({'status': True})
 
 
