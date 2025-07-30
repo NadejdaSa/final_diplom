@@ -1,17 +1,8 @@
 from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from backend.views import *
-
-router = DefaultRouter()
-router.register(r'users', UserViewSet)
-router.register(r'shops', ShopViewSet)
-router.register(r'categories', CategoryViewSet)
-router.register(r'products', ProductViewSet)
-router.register(r'product_info', ProductInfoViewSet)
-router.register(r'parameters', ParameterViewSet)
-router.register(r'product_parameters', ProductParameterViewSet)
-router.register(r'order_items', OrderItemViewSet)
-router.register(r'orders', OrderViewSet)
+from django.contrib import admin
+from backend.views import RegisterView, ConfirmEmailView, LoginView, \
+    ProductView, BasketView, ContactView, OrderListView, ConfirmOrderView, \
+    PartnerUpdate
 
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
@@ -23,6 +14,6 @@ urlpatterns = [
     path('contacts/', ContactView.as_view(), name='contacts'),
     path('orders/my/', OrderListView.as_view(), name='my-orders'),
     path('order/confirm/', ConfirmOrderView.as_view(), name='order-confirm'),
-    path('', include(router.urls)),
+    path('admin/', admin.site.urls),
+    path('password_reset/', include('django_rest_passwordreset.urls')),
 ]
-

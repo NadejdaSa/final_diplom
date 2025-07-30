@@ -1,6 +1,8 @@
 from django.db import models
-from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, PermissionsMixin
+from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, \
+    PermissionsMixin
 from django_rest_passwordreset.tokens import get_token_generator
+
 
 # Create your models here.
 class UserManager(BaseUserManager):
@@ -27,7 +29,8 @@ class UserManager(BaseUserManager):
         if extra_fields.get('is_staff') is not True:
             raise ValueError('Суперпользователь должен иметь is_staff=True.')
         if extra_fields.get('is_superuser') is not True:
-            raise ValueError('Суперпользователь должен иметь is_superuser=True')
+            raise ValueError('Суперпользователь должен иметь \
+                             is_superuser=True')
         return self._create_user(email, password, type='shop', **extra_fields)
 
 
@@ -56,6 +59,7 @@ class Shop(models.Model):
     user = models.OneToOneField(User,
                                 blank=True, null=True,
                                 on_delete=models.CASCADE)
+
     def __str__(self):
         return self.name
 
@@ -179,4 +183,3 @@ class ConfirmEmailToken(models.Model):
 
     def __str__(self):
         return f"Email confirmation token for {self.user.email}"
-
