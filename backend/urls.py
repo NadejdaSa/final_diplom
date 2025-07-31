@@ -14,6 +14,5 @@ urlpatterns = [
     path('contacts/', ContactView.as_view(), name='contacts'),
     path('orders/my/', OrderListView.as_view(), name='my-orders'),
     path('order/confirm/', ConfirmOrderView.as_view(), name='order-confirm'),
-    path('admin/', admin.site.urls),
     path('password_reset/', include('django_rest_passwordreset.urls')),
 ]

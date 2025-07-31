@@ -1,4 +1,3 @@
-from django.forms import ValidationError
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -6,85 +5,30 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.authtoken.models import Token
 from .serializers import ContactSerializer, OrderSerializer, \
     ProductInfoSerializer
-from .models import Category, ConfirmEmailToken, Contact, Order, OrderItem, \
-    Parameter, Product, ProductInfo, ProductParameter, Shop, User
-from django.core.validators import URLValidator
-from requests import get
+from .models import ConfirmEmailToken, Contact, Order, OrderItem, \
+    ProductInfo, User
 from backend.signals import new_user_registered, email_confirmed, \
     new_order_status
 from django.contrib.auth import authenticate
-import yaml
+from backend.tasks import do_import
 
 
 # Реализация импорта товаров
 class PartnerUpdate(APIView):
     permission_classes = [IsAuthenticated]
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request):
+        url = request.data.get('url')
         if request.user.type != 'shop':
             return Response(
                 {'status': False, 'error': 'Только для магазинов'},
                 status=status.HTTP_403_FORBIDDEN)
-
-        url = request.data.get('url')
         if not url:
             return Response(
                 {'status': False, 'error': 'Не указан url'},
                 status=status.HTTP_400_BAD_REQUEST)
-
-        validate_url = URLValidator()
-        try:
-            validate_url(url)
-        except ValidationError as e:
-            return Response(
-                {'status': False, 'error': f'Некорректный URL: {str(e)}'},
-                status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            response = get(url)
-            response.raise_for_status()
-            data = yaml.safe_load(response.content)
-        except Exception as e:
-            return Response(
-                {'status': False, 'error': f'Ошибка загрузки yaml: {str(e)}'},
-                status=status.HTTP_400_BAD_REQUEST)
-
-        shop_name = data.get('shop')
-        if not shop_name:
-            return Response(
-                {'status': False, 'error': 'Не указан магазин'},
-                status=status.HTTP_400_BAD_REQUEST)
-        shop, _ = Shop.objects.get_or_create(name=data['shop'],
-                                             user_id=request.user.id)
-
-        for category in data.get('categories', []):
-            category_obj, _ = Category.objects.get_or_create(
-                id=category['id'],
-                name=category['name'])
-            category_obj.shops.add(shop)
-        ProductInfo.objects.filter(shop_id=shop.id).delete()
-
-        for item in data.get('goods', []):
-            product, _ = Product.objects.get_or_create(
-                name=item['name'],
-                category_id=item['category'])
-            product_info = ProductInfo.objects.create(
-                product_id=product.id,
-                external_id=item['id'],
-                model=item['model'],
-                price=item['price'],
-                price_rrc=item['price_rrc'],
-                quantity=item['quantity'],
-                shop_id=shop.id
-            )
-            for name, value in item.get('parameters', {}).items():
-                parameter, _ = Parameter.objects.get_or_create(name=name)
-                ProductParameter.objects.create(
-                    product_info_id=product_info.id,
-                    parameter_id=parameter.id,
-                    value=value)
-
-        return Response({'status': True})
+        do_import.delay(url, request.user.id)
+        return Response({'status': True, 'message': 'Импорт запущен в фоне'})
 
 
 # Регистрация
