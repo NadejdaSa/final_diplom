@@ -1,0 +1,175 @@
+# примеры API-запросов
+
+@baseUrl = http://localhost:8000/
+
+
+# Регистрация
+POST {{baseUrl}}/api/register/
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "123456",
+  "username": "username",
+  "type": "shop/buyer"
+}
+
+###
+
+# Подтверждение токена
+POST {{baseUrl}}/api/confirm-email/
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "token": "ваш_токен_здесь"
+}
+
+###
+
+# Вход (логин)
+POST {{baseUrl}}/api/login/
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "123456"
+}
+
+###
+
+# Сброс пароля
+POST {{baseUrl}}/api/password_reset/
+
+{
+  "email": "user@example.com",
+}
+
+###
+
+# Ввод нового пароля и токена
+POST {{baseUrl}}/api/password_reset/confirm/
+
+{
+  "email": "user@example.com",
+  "token": "Токен, который пришел на почту", 
+  "password": "новый пароль"
+}
+
+###
+
+# Импорт товаров
+
+POST {{baseUrl}}/api/partner/update/
+Content-Type: application/json
+Authorization: Token ваш_токен
+
+{
+  "url": "http://backend:8000/static/shop.yaml"
+}
+
+###
+
+# Просмотр списка товаров
+
+GET {{baseUrl}}/api/product-list/
+Authorization: Token ваш_токен
+
+###
+
+# Корзина (добавление)
+
+POST {{baseUrl}}/api/basket/
+Content-Type: application/json
+Authorization: Token ваш_токен
+
+{
+  "product_info_id": 4,
+  "quantity": 1
+}
+
+###
+
+# Корзина (удаление)
+
+DELETE {{baseUrl}}/api/basket/
+Content-Type: application/json
+Authorization: Token ваш_токен
+
+{
+    "item_id": 2
+}
+
+###
+
+# Корзина (Просмотр)
+
+GET {{baseUrl}}/api/basket/
+Content-Type: application/json
+Authorization: Token ваш_токен
+
+###
+
+# Контакт (добавление)
+
+POST {{baseUrl}}/api/contacts/
+Content-Type: application/json
+Authorization: Token ваш_токен
+
+{
+  "type": "phone",
+  "value": "89671389585"
+}
+
+###
+
+# Контакт (добавление)
+
+POST {{baseUrl}}/api/contacts/
+Content-Type: application/json
+Authorization: Token ваш_токен
+
+{
+  "type": "address",
+  "value": "г. Москва, Варшавское ш., 13, кв 19"
+}
+
+###
+
+# Контакт (удаление)
+
+DELETE {{baseUrl}}/api/contacts/
+Content-Type: application/json
+Authorization: Token ваш_токен
+
+{
+    "contact_id": 2
+}
+
+###
+
+# Контакт (Просмотр)
+
+GET {{baseUrl}}/api/contacts/
+Content-Type: application/json
+Authorization: Token ваш_токен
+
+###
+
+# Подтверждение корзины
+
+POST {{baseUrl}}/api/order/confirm/
+Content-Type: application/json
+Authorization: Token ваш_токен
+
+{
+  "contact": 1
+}
+
+###
+
+# Просмотр заказа
+
+GET {{baseUrl}}/api/orders/my/
+Content-Type: application/json
+Authorization: Token ваш_токен
