@@ -6,6 +6,9 @@ from django_rest_passwordreset.tokens import get_token_generator
 
 # Create your models here.
 class UserManager(BaseUserManager):
+    """
+    Миксин для управления пользователями
+    """
     use_in_migrations = True
 
     def _create_user(self, email, password, type, **extra_fields):
@@ -35,6 +38,9 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
+    """
+    Стандартная модель пользователей
+    """
     USER_TYPES = (
         ('shop', 'Магазин'),
         ('buyer', 'Покупатель'),
@@ -53,17 +59,20 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.email
 
 
+# Модель магазина
 class Shop(models.Model):
     name = models.CharField(max_length=200)
     url = models.URLField(null=True)
     user = models.OneToOneField(User,
                                 blank=True, null=True,
                                 on_delete=models.CASCADE)
+    accepting_orders = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name
 
 
+# Модель категории товара
 class Category(models.Model):
     name = models.CharField(max_length=200)
     shops = models.ManyToManyField(Shop, related_name='categories')
@@ -72,6 +81,7 @@ class Category(models.Model):
         return self.name
 
 
+# Модель товара
 class Product(models.Model):
     name = models.CharField(max_length=200)
     category = models.ForeignKey(Category, related_name='products',
@@ -81,6 +91,7 @@ class Product(models.Model):
         return self.name
 
 
+# Информация о товаре в конкретном магазине
 class ProductInfo(models.Model):
     product = models.ForeignKey(Product, related_name='product_infos',
                                 on_delete=models.CASCADE)
@@ -96,6 +107,7 @@ class ProductInfo(models.Model):
         return f"{self.product.name} в {self.shop.name} — {self.price} руб."
 
 
+# Параметры (характеристики) товара
 class Parameter(models.Model):
     name = models.CharField(max_length=100)
 
@@ -103,6 +115,7 @@ class Parameter(models.Model):
         return self.name
 
 
+# Значения параметров товара
 class ProductParameter(models.Model):
     product_info = models.ForeignKey(ProductInfo, related_name='parameters',
                                      on_delete=models.CASCADE)
@@ -117,6 +130,7 @@ class ProductParameter(models.Model):
         return f"{self.parameter.name}: {self.value}"
 
 
+# Заказ
 class Order(models.Model):
     user = models.ForeignKey(User, related_name='orders',
                              on_delete=models.CASCADE)
@@ -136,6 +150,7 @@ class Order(models.Model):
         return f'Order #{self.id} - {self.user}'
 
 
+# Позиции заказа (конкретные товары в заказе)
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, related_name='items',
                               on_delete=models.CASCADE)
@@ -149,6 +164,7 @@ class OrderItem(models.Model):
         return f'{self.product.product.name} x {self.quantity}'
 
 
+# Контактная информация пользователя
 class Contact(models.Model):
     CONTACT_TYPES = (
         ('email', 'Email'),
@@ -164,6 +180,7 @@ class Contact(models.Model):
         return f"{self.type}:{self.value}"
 
 
+# Токен подтверждения email
 class ConfirmEmailToken(models.Model):
     objects = models.manager.Manager()
 

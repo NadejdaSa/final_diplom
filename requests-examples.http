@@ -173,3 +173,32 @@ Authorization: Token ваш_токен
 GET {{baseUrl}}/api/orders/my/
 Content-Type: application/json
 Authorization: Token ваш_токен
+
+###
+
+# Вкл/Выкл приема заказов (True/False)
+
+POST {{baseUrl}}/api/partner/orders/availability/
+Content-Type: application/json
+Authorization: Token ваш_токен
+
+{
+  "accepting_orders": true
+}
+
+###
+
+# Обновление поставщиком статуса заказа
+
+POST {{baseUrl}}/api/partner/state/
+Content-Type: application/json
+Authorization: Token ваш_токен
+
+{
+  "order_id": 1,
+  "status": "sent"
+}
+
+
+
+

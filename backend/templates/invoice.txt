@@ -1,0 +1,11 @@
+Накладная на заказ №{{ order.id }} для магазина "{{ shop.name }}"
+Дата: {{ order.dt }}
+
+Покупатель: {{ order.user.email }}
+
+Товары:
+{% for item in items %}
+- {{ item.product.product.name }} — {{ item.quantity }} шт. по {{ item.product.price }} руб.
+{% endfor %}
+
+Итого: {{ total_sum|floatformat:2 }} руб.

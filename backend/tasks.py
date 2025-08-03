@@ -3,6 +3,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
 
 
+# Асинхронная задача для отправки email
 @shared_task
 def send_email(subject, message, from_email, to_email):
     msg = EmailMultiAlternatives(subject, message, from_email, [to_email])
@@ -13,6 +14,7 @@ def send_email(subject, message, from_email, to_email):
         return f'Failed to send email:{str(e)}'
 
 
+# Асинхронная задача для импорта данных из YAML по URL
 @shared_task
 def do_import(url, user_id):
     from django.core.exceptions import ValidationError

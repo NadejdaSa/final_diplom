@@ -1,8 +1,9 @@
 from django.urls import path, include
 from django.contrib import admin
-from backend.views import RegisterView, ConfirmEmailView, LoginView, \
-    ProductView, BasketView, ContactView, OrderListView, ConfirmOrderView, \
-    PartnerUpdate
+from backend.views import PartnerExportView, PartnerOrdersView, PartnerState, \
+    RegisterView, ConfirmEmailView, LoginView, ProductView, BasketView, \
+    ContactView, OrderListView, ConfirmOrderView, PartnerUpdate, \
+    PartnerOrderAvailableView
 
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
@@ -15,4 +16,11 @@ urlpatterns = [
     path('orders/my/', OrderListView.as_view(), name='my-orders'),
     path('order/confirm/', ConfirmOrderView.as_view(), name='order-confirm'),
     path('password_reset/', include('django_rest_passwordreset.urls')),
+    path('partner/orders/availability/', PartnerOrderAvailableView.as_view(),
+         name='partner_order_availability'),
+    path('partner/orders/', PartnerOrdersView.as_view(),
+         name='partner_orders'),
+    path('partner/state/', PartnerState.as_view(), name='partner_state'),
+    path('partner/export/', PartnerExportView.as_view(),
+         name='partner_export'),
 ]

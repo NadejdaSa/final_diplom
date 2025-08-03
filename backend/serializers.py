@@ -48,6 +48,8 @@ class ProductInfoSerializer(serializers.ModelSerializer):
     product = serializers.PrimaryKeyRelatedField(
         queryset=Product.objects.all())
     shop = serializers.PrimaryKeyRelatedField(queryset=Shop.objects.all())
+    product_detail = ProductSerializer(source='product', read_only=True)
+    shop_detail = ShopSerializer(source='shop', read_only=True)
 
     class Meta:
         model = ProductInfo
@@ -57,7 +59,9 @@ class ProductInfoSerializer(serializers.ModelSerializer):
                   'model',
                   'quantity',
                   'price',
-                  'price_rrc']
+                  'price_rrc',
+                  'product_detail',
+                  'shop_detail']
 
 
 class ParameterSerializer(serializers.ModelSerializer):
@@ -75,6 +79,9 @@ class ProductParameterSerializer(serializers.ModelSerializer):
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
+    product = ProductInfoSerializer(read_only=True)
+    shop = ShopSerializer(read_only=True)
+
     class Meta:
         model = OrderItem
         fields = ['id', 'product', 'quantity', 'shop']
@@ -83,10 +90,12 @@ class OrderItemSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     user = UserSerializer(read_only=True)
+    total_sum = serializers.DecimalField(
+        max_digits=10, decimal_places=2, read_only=True)
 
     class Meta:
         model = Order
-        fields = ['id', 'user', 'dt', 'status', 'items']
+        fields = ['id', 'user', 'dt', 'status', 'items', 'total_sum']
 
 
 class ContactSerializer(serializers.ModelSerializer):
