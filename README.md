@@ -35,4 +35,4 @@ docker-compose exec backend python manage.py createsuperuser
 
 ## 🔗 Postman
 
-[Коллекция для Postman](https://nadejdadawydowa.postman.co/workspace/Nadejda-Dawydowa's-Workspace~a3735341-1244-49e8-8e51-93ebcb29f92a/collection/46898581-d6b5e879-63c2-4960-992f-9f47a82ec5b1?action=share&creator=46898581 — все доступные запросы API
+[Коллекция для Postman](https://nadejdadawydowa.postman.co/workspace/Nadejda-Dawydowa%27s-Workspace~a3735341-1244-49e8-8e51-93ebcb29f92a/collection/46898581-d6b5e879-63c2-4960-992f-9f47a82ec5b1?action=share&creator=46898581) — все доступные запросы API
